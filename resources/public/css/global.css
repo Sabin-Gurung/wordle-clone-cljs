@@ -16,6 +16,7 @@
   text-align: center;
   font-size: 1.6em;
   font-weight: bold;
+  text-transform: uppercase;
 }
 
 #keyboard {
@@ -38,6 +39,10 @@
 
 .key-row > .key-item {
   width: 100%;
+  background-color: #dceff2;
+  border-radius: 6px;
+  color: black;
+  margin: 4px;
 }
 
 #table {
@@ -56,9 +61,40 @@
   text-transform: uppercase;
 }
 
-.row > .cell {
+.past-row {
+  color: white;
+}
+
+.cell.hit {
+  background-color: #82c27e;
+}
+
+.cell.miss {
+  background-color: #eba031;
+}
+
+.cell.invalid {
+  background-color: #494d49;
+}
+
+.cell {
   margin: 3px;
-  border: solid 1px red;
+  background-color: #e4ede6;
+  border-radius: 2px;
   width: 100%;
   font-size: 1.8em;
+}
+
+.game-over {
+  text-align: center;
+}
+
+.win-btn {
+  font-size: 2em;
+  background-color: #5cb507;
+  border-radius: 10px;
+  color: white;
+  border: 0px;
+  padding: 10px;
+  margin: auto auto;
 }

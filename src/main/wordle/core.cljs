@@ -43,7 +43,7 @@
 (update-game-over {:nround 1 :round 2} false)
 
 ; Views
-(defn css [& args] {:style (apply hash-map args)})
+(defn cls [cl] {:class cl})
 
 
 (defn header []
@@ -71,9 +71,8 @@
          [:div.key-row (for [l a] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
          [:div.key-row (for [l z] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
          [:div.key-row 
-          ; [:div.key-item "[" cur-word "]"]
-          [:div.key-item {:on-click on-backspace} "Back <-"]
-          [:div.key-item {:on-click on-enter}"Enter"]]]))))
+          [:div.key-item {:on-click on-backspace} "<-"]
+          [:div.key-item {:on-click on-enter} "Enter"]]]))))
 
 
 (defn input-row [cell-n word]
@@ -82,33 +81,35 @@
        [:div.cell (get word i)])])
 
 (defn evaluated-row [cell-n words]
-  (let [cell-color {:hit "green" :miss "orange" :invalid "grey"}
-        render-cell (fn [i [letter state]]
-                      ^{:key i}
-                      [:div.cell (css :background-color (state cell-color)) 
-                       letter])]
-    [:div.row (css :color "white")
-     (map-indexed render-cell words)]))
+  (let [render-cell (fn [i [letter state]] ^{:key i}
+                      [:div.cell (cls state) letter])]
+    [:div.row.past-row (map-indexed render-cell words)]))
 
 (defn table [word-size past-rounds current-word left-round]
+  (println left-round)
      [:div#table
       (map-indexed (fn [i d] ^{:key i} [evaluated-row word-size d]) past-rounds)
-      (when current-word [input-row word-size current-word])
+      (when-not (neg? left-round) [input-row word-size current-word])
       (for [i (range left-round)] ^{:key i} [input-row word-size ""])])
 
 
 (def test-game-state (-> (create-game 5 ["s" "a" "b" "i" "n"])
     (next-state  ["s" "b" "b" "i" "n"])
+    (next-state  ["s" "b" "b" "i" "n"])
+    ; (next-state  ["s" "b" "b" "i" "n"])
+    (next-state  ["s" "b" "b" "i" "n"])
+    ; (next-state  "sabin")
     ; (next-state  ["s" "b" "b" "i" "n"])
     ; (next-state  ["s" "a" "b" "i" "n"])
     )
   )
 
+
 (defn app []
   (let [word (r/atom "")
-        game (r/atom (create-game 5 ["s" "a" "b" "i" "n"])) 
-        create-new-game (fn [] (reset! game (create-game 5 ["s" "a" "b" "i" "n"])))]
-        test-word (fn [state wd] (reset! game (next-state state wd)))
+        game (r/atom (create-game 5 ["s" "a" "b" "i" "n"]))
+        adv-game (fn [wd] (reset! game (next-state @game wd)))
+        create-new-game (fn [] (reset! game (create-game 5 ["s" "a" "b" "i" "n"]))) ]
     (fn []
       (let [state @game
             {:keys [past-rounds 
@@ -121,11 +122,10 @@
           [:div.section [header]]
           [:div.section [table 5 past-rounds @word (- nround round)]]
           (if game-over?
-            [:div.section [:h1.border "You " game-status]
-                           [:button {:on-click create-new-game} "Play Again"]]
-            [:div.section [keyboard 5 #(test-word state @word) #(reset! word %)]]
-            )]]
-        ))))
+            [:div.section.game-over 
+             [:h1 "You " game-status]
+             [:button.win-btn {:on-click create-new-game} "Play Again"]]
+            [:div.section [keyboard 5 adv-game #(reset! word %)]])]]))))
 
 (defn mount-app [] 
   (when-let [el (gdom/getElement "app")] 
