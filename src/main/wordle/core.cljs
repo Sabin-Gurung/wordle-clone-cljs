@@ -5,8 +5,14 @@
 
 (. js/document addEventListener "keydown" #(. % preventDefault))
 (defn key-listener [cb]
-  (. js/document addEventListener "keyup" cb)
-  #(. js/document removeEventListener "keyup" cb))
+  (let [keymap {65 "a" 66 "b" 67 "c" 68 "d" 69 "e" 70 "f" 71 "g" 72 "h"
+                73 "i" 74 "j" 75 "k" 76 "l" 77 "m" 78 "n" 79 "o" 80 "p"
+                81 "q" 82 "r" 83 "s" 84 "t" 85 "u" 86 "v" 87 "w" 88 "x"
+                89 "y" 90 "z" 8 "-" 13 "+"}
+        cb2 (fn [ev] (cb (get keymap (.-which ev))))]
+    (. js/document addEventListener "keyup" cb2)
+    #(. js/document removeEventListener "keyup" cb2)))
+
 ; ========== game model ===============
 (defn create-game [nround goal]
   {:goal goal
@@ -50,7 +56,6 @@
   )
 
 ; ========== view ===============
-
 (defn cls [cl] {:class cl})
 
 (defn header [] [:div#header [:p "Wordle Cljs"]])
@@ -59,34 +64,39 @@
   (let [word (r/atom "")
         q "qwertyuiop"
         a "asdfghl"
-        z "zxcvbnm"]
-    (fn []
-      (let [cur-word @word
-            on-letter #(fn [_] (when (< (count cur-word) n)
-                                 (-> (swap! word str %)
-                                     change-cb)))
-            on-backspace (fn [_] (->> (apply str (drop-last cur-word)) 
-                                      (reset! word)
-                                      change-cb))
-            on-enter (fn [_] (when (= n (count cur-word)) 
-                               (enter-cb cur-word)
-                               (reset! word "")
-                               (change-cb "")))]
-        [:div#keyboard 
-         [:div.key-row (for [l q] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
-         [:div.key-row (for [l a] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
-         [:div.key-row (for [l z] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
-         [:div.key-row 
-          [:div.key-item {:on-click on-backspace} "<-"]
-          [:div.key-item {:on-click on-enter} "Enter"]]]))))
-
+        z "zxcvbnm"
+        add-to-word (fn [w] (when (< (count @word) n)
+                              (-> (swap! word str w) (change-cb))))
+        undo-to-word (fn [] (->> (apply str (drop-last @word)) (reset! word) change-cb))
+        select-word (fn [] (when (= n (count @word)) 
+                                  (enter-cb @word)
+                                  (reset! word "")
+                                  (change-cb "")))
+        keyEvent (key-listener (fn [w] (when w
+                                         (case w
+                                           "-" (undo-to-word)
+                                           "+" (select-word)
+                                           (add-to-word w)))))]
+    (r/create-class
+      {:reagent-render 
+       (fn []
+         (let [cur-word @word
+               on-letter #(fn [_] (add-to-word %))]
+           [:div#keyboard 
+            [:div.key-row (for [l q] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
+            [:div.key-row (for [l a] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
+            [:div.key-row (for [l z] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
+            [:div.key-row 
+             [:div.key-item {:on-click #(undo-to-word)} "<-"]
+             [:div.key-item {:on-click #(select-word)} "Enter"]]]))
+       :component-will-unmount (fn [_] (keyEvent))})))
 
 (defn input-row [cell-n word]
   [:div.row
      (for [i (range cell-n)] ^{:key i}
        [:div.cell (get word i)])])
 
-(defn evaluated-row [cell-n words]
+(defn evaluated-row [words]
   (let [render-cell (fn [i [letter state]] ^{:key i}
                       [:div.cell (cls state) letter])]
     [:div.row.past-row (map-indexed render-cell words)]))
@@ -94,7 +104,7 @@
 (defn table [word-size past-rounds current-word left-round]
   (println left-round)
      [:div#table
-      (map-indexed (fn [i d] ^{:key i} [evaluated-row word-size d]) past-rounds)
+      (map-indexed (fn [i d] ^{:key i} [evaluated-row d]) past-rounds)
       (when-not (neg? left-round) [input-row word-size current-word])
       (for [i (range left-round)] ^{:key i} [input-row word-size ""])])
 
