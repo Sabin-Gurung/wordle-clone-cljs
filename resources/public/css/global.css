@@ -43,6 +43,7 @@
   border-radius: 6px;
   color: black;
   margin: 4px;
+  line-height: 160%;
 }
 
 #table {
@@ -83,6 +84,7 @@
   border-radius: 2px;
   width: 100%;
   font-size: 1.8em;
+  line-height: 160%;
 }
 
 .game-over {
