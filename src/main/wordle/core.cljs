@@ -3,6 +3,11 @@
             [goog.dom :as gdom]
             [reagent.dom :as rdom]))
 
+(. js/document addEventListener "keydown" #(. % preventDefault))
+(defn key-listener [cb]
+  (. js/document addEventListener "keyup" cb)
+  #(. js/document removeEventListener "keyup" cb))
+; ========== game model ===============
 (defn create-game [nround goal]
   {:goal goal
    :nround nround
@@ -40,14 +45,15 @@
         (update-game-over match?)
         (update-game-win-status match?))))
 
-(update-game-over {:nround 1 :round 2} false)
+(comment
+  (update-game-over {:nround 1 :round 2} false)
+  )
 
-; Views
+; ========== view ===============
+
 (defn cls [cl] {:class cl})
 
-
-(defn header []
-  [:div#header [:p "Wordle Cljs"]])
+(defn header [] [:div#header [:p "Wordle Cljs"]])
 
 (defn keyboard [n enter-cb change-cb]
   (let [word (r/atom "")
@@ -92,19 +98,6 @@
       (when-not (neg? left-round) [input-row word-size current-word])
       (for [i (range left-round)] ^{:key i} [input-row word-size ""])])
 
-
-(def test-game-state (-> (create-game 5 ["s" "a" "b" "i" "n"])
-    (next-state  ["s" "b" "b" "i" "n"])
-    (next-state  ["s" "b" "b" "i" "n"])
-    ; (next-state  ["s" "b" "b" "i" "n"])
-    (next-state  ["s" "b" "b" "i" "n"])
-    ; (next-state  "sabin")
-    ; (next-state  ["s" "b" "b" "i" "n"])
-    ; (next-state  ["s" "a" "b" "i" "n"])
-    )
-  )
-
-
 (defn app []
   (let [word (r/atom "")
         game (r/atom (create-game 5 ["s" "a" "b" "i" "n"]))
@@ -112,11 +105,7 @@
         create-new-game (fn [] (reset! game (create-game 5 ["s" "a" "b" "i" "n"]))) ]
     (fn []
       (let [state @game
-            {:keys [past-rounds 
-                    nround 
-                    round
-                    game-over?
-                    game-status]} state]
+            {:keys [past-rounds nround round game-over? game-status]} state]
         [:div
          [:div#main
           [:div.section [header]]
@@ -143,7 +132,23 @@
   (js/console.log "start")
   (mount-app))
 
+(def test-game-state (-> (create-game 5 ["s" "a" "b" "i" "n"])
+    (next-state  ["s" "b" "b" "i" "n"])
+    (next-state  ["s" "b" "b" "i" "n"])
+    ; (next-state  ["s" "b" "b" "i" "n"])
+    (next-state  ["s" "b" "b" "i" "n"])
+    ; (next-state  "sabin")
+    ; (next-state  ["s" "b" "b" "i" "n"])
+    ; (next-state  ["s" "a" "b" "i" "n"])
+    )
+  )
+
 (comment
+  (def hello 
+    (key-listener println)
+    )
+  (hello)
+  
   (init)
   (js/alert "hello")
   (println "this is a comment")
