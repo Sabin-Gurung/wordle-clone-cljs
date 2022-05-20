@@ -1,7 +1,9 @@
 (ns wordle.core
-  (:require [reagent.core :as r]
-            [goog.dom :as gdom]
-            [reagent.dom :as rdom]))
+  (:require
+   [clojure.string :as string]
+   [goog.dom :as gdom]
+   [reagent.core :as r]
+   [reagent.dom :as rdom]))
 
 (. js/document addEventListener "keydown" #(. % preventDefault))
 (defn key-listener [cb]
@@ -15,6 +17,7 @@
 
 ; ========== game model ===============
 (defn create-game [nround goal]
+  (println goal)
   {:goal goal
    :nround nround
    :round 1
@@ -55,6 +58,37 @@
   (update-game-over {:nround 1 :round 2} false)
   )
 
+; =============== word generator ======================
+
+(def db ["abuse" "adult" "agent" "anger" "apple" "award" "basis" "beach" "birth" "block" "blood"
+         "board" "brain" "bread" "break" "brown" "buyer" "cause" "chain" "chair" "chest" "chief"
+         "child" "china" "claim" "class" "clock" "coach" "coast" "court" "cover" "cream" "crime"
+         "cross" "crowd" "crown" "cycle" "dance" "death" "depth" "doubt" "draft" "drama" "dream"
+         "dress" "drink" "drive" "earth" "enemy" "entry" "error" "event" "faith" "fault" "field"
+         "fight" "final" "floor" "focus" "force" "frame" "frank" "front" "fruit" "glass" "grant"
+         "grass" "green" "group" "guide" "heart" "henry" "horse" "hotel" "house" "image" "index"
+         "input" "issue" "japan" "jones" "judge" "knife" "laura" "layer" "level" "lewis" "light"
+         "limit" "lunch" "major" "march" "match" "metal" "model" "money" "month" "motor" "mouth"
+         "music" "night" "noise" "north" "novel" "nurse" "offer" "order" "other" "owner" "panel"
+         "paper" "party" "peace" "peter" "phase" "phone" "piece" "pilot" "pitch" "place" "plane"
+         "plant" "plate" "point" "pound" "power" "press" "price" "pride" "prize" "proof" "queen"
+         "radio" "range" "ratio" "reply" "right" "river" "round" "route" "rugby" "scale" "scene"
+         "scope" "score" "sense" "shape" "share" "sheep" "sheet" "shift" "shirt" "shock" "sight"
+         "simon" "skill" "sleep" "smile" "smith" "smoke" "sound" "south" "space" "speed" "spite"
+         "sport" "squad" "staff" "stage" "start" "state" "steam" "steel" "stock" "stone" "store"
+         "study" "stuff" "style" "sugar" "table" "taste" "terry" "theme" "thing" "title" "total"
+         "touch" "tower" "track" "trade" "train" "trend" "trial" "trust" "truth" "uncle" "union"
+         "unity" "value" "video" "visit" "voice" "waste" "watch" "water" "while" "white" "whole"
+         "woman" "world" "youth"])
+
+(defn generate-word []
+  (vec (rand-nth db)))
+
+(generate-word)
+
+(defn valid? [w]
+  (some #{(string/lower-case w)} db))
+
 ; ========== view ===============
 (defn cls [cl] {:class cl})
 
@@ -68,7 +102,7 @@
         add-to-word (fn [w] (when (< (count @word) n)
                               (-> (swap! word str w) (change-cb))))
         undo-to-word (fn [] (->> (apply str (drop-last @word)) (reset! word) change-cb))
-        select-word (fn [] (when (= n (count @word)) 
+        select-word (fn [] (when (and (= n (count @word)) (valid? @word)) 
                                   (enter-cb @word)
                                   (reset! word "")
                                   (change-cb "")))
@@ -102,17 +136,16 @@
     [:div.row.past-row (map-indexed render-cell words)]))
 
 (defn table [word-size past-rounds current-word left-round]
-  (println left-round)
-     [:div#table
-      (map-indexed (fn [i d] ^{:key i} [evaluated-row d]) past-rounds)
-      (when-not (neg? left-round) [input-row word-size current-word])
-      (for [i (range left-round)] ^{:key i} [input-row word-size ""])])
+  [:div#table
+   (map-indexed (fn [i d] ^{:key i} [evaluated-row d]) past-rounds)
+   (when-not (neg? left-round) [input-row word-size current-word])
+   (for [i (range left-round)] ^{:key i} [input-row word-size ""])])
 
 (defn app []
   (let [word (r/atom "")
-        game (r/atom (create-game 5 ["s" "a" "b" "i" "n"]))
+        game (r/atom (create-game 5 (generate-word)))
         adv-game (fn [wd] (reset! game (next-state @game wd)))
-        create-new-game (fn [] (reset! game (create-game 5 ["s" "a" "b" "i" "n"]))) ]
+        create-new-game (fn [] (reset! game (create-game 5 (generate-word)))) ]
     (fn []
       (let [state @game
             {:keys [past-rounds nround round game-over? game-status]} state]
