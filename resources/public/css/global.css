@@ -1,3 +1,64 @@
 .red {
   background-color: red;
 }
+
+.border {
+  border: solid 1px red;
+}
+
+#main {
+  display: grid;
+  grid-template-rows: 1fr 5fr 4fr;
+  height: 95vh;
+}
+
+#header {
+  text-align: center;
+  font-size: 1.6em;
+  font-weight: bold;
+}
+
+#keyboard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  text-align: center;
+  max-width: 800px;
+  max-height: 300px;
+  font-size: 1.8em;
+  text-transform: uppercase;
+  margin: 0 auto;
+}
+
+.key-row {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.key-row > .key-item {
+  width: 100%;
+}
+
+#table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 700px;
+  max-height: 500px;
+  margin: auto;
+}
+
+.row {
+  display: flex;
+  height: 100%;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.row > .cell {
+  margin: 3px;
+  border: solid 1px red;
+  width: 100%;
+  font-size: 1.8em;
+}

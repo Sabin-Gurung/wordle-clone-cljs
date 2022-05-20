@@ -40,52 +40,17 @@
         (update-game-over match?)
         (update-game-win-status match?))))
 
-(-> (create-game 3 ["s" "a" "b" "i" "n"])
-    (next-state  ["s" "b" "b" "i" "n"])
-    (next-state  ["s" "b" "b" "i" "n"])
-    ; (next-state  ["s" "a" "b" "i" "n"])
-    )
-
 (update-game-over {:nround 1 :round 2} false)
 
 ; Views
-; example game state
-{:goal ["s" "a" "b" "i" "n"],
- :nround 6,
- :round 3,
- :past-rounds [[["s" :hit] ["b" :miss] ["b" :hit] ["i" :hit] ["n" :hit]]
-               [["s" :hit] ["a" :hit] ["b" :hit] ["i" :hit] ["n" :hit]]],
- :game-over? true,
- :game-status :win}
-
-(defn px [a] (str a "px"))
 (defn css [& args] {:style (apply hash-map args)})
 
 
-(defn evaluated-row [cell-n row-size words]
-  (let [cell-size (-> (/ row-size cell-n) px)
-        cell-color {:hit "green" :miss "orange" :invalid "grey"}
-        render-cell (fn [i [letter state]]
-                      ^{:key i}
-                      [:div.col.border.text (css :height cell-size 
-                                                 :font-size "3em" 
-                                                 :background-color (state cell-color)) 
-                       letter])]
-    [:div.row.text-center (css :width (px row-size) :color "white")
-     (map-indexed render-cell words)]))
+(defn header []
+  [:div#header [:p "Wordle Cljs"]])
 
-(defn input-row 
-  ([cell-n row-size] (input-row cell-n row-size ""))
-  ([cell-n row-size word]
-   (let [cell-size (/ row-size cell-n)]
-     [:div.row.text-center (css :width (px row-size))
-      (for [i (range cell-n)] ^{:key i}
-        [:div.col.border.text (css :height (px cell-size) :font-size "3em") 
-         (get word i)])])))
-
-
-(defn key-board [n enter-cb change-cb]
-  (let [word (r/atom "s")
+(defn keyboard [n enter-cb change-cb]
+  (let [word (r/atom "")
         q "qwertyuiop"
         a "asdfghl"
         z "zxcvbnm"]
@@ -97,44 +62,70 @@
             on-backspace (fn [_] (->> (apply str (drop-last cur-word)) 
                                       (reset! word)
                                       change-cb))
-            on-enter (fn [_] (when (= n (count cur-word)) (enter-cb cur-word)))]
-        [:div [:h3 "KEYBOARD STATE : -> [" cur-word "]"]
-         [:div.row (for [l q] ^{:key l} [:div.col.border {:on-click (on-letter l)} (str l)]) ]
-         [:div.row (for [l a] ^{:key l} [:div.col.border {:on-click (on-letter l)} (str l)]) ]
-         [:div.row (for [l z] ^{:key l} [:div.col.border {:on-click (on-letter l)} (str l)]) ]
-         [:div.row 
-          [:div.col.border {:on-click on-backspace} "backspace"]
-          [:div.col.border {:on-click on-enter}"enter"]]]))))
+            on-enter (fn [_] (when (= n (count cur-word)) 
+                               (enter-cb cur-word)
+                               (reset! word "")
+                               (change-cb "")))]
+        [:div#keyboard 
+         [:div.key-row (for [l q] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
+         [:div.key-row (for [l a] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
+         [:div.key-row (for [l z] ^{:key l} [:div.key-item {:on-click (on-letter l)} (str l)]) ]
+         [:div.key-row 
+          ; [:div.key-item "[" cur-word "]"]
+          [:div.key-item {:on-click on-backspace} "Back <-"]
+          [:div.key-item {:on-click on-enter}"Enter"]]]))))
 
-(defn game []
-  (let [word (r/atom "")]
-    (fn []
-      [:div
 
-    [evaluated-row 5 500 [["s" :hit] ["g" :invalid] ["b" :hit] ["n" :miss] ["n" :hit]]]
-       [input-row 5 500 @word]
-       [key-board 5 js/alert #(reset! word %)]
-       ]
-      )
+(defn input-row [cell-n word]
+  [:div.row
+     (for [i (range cell-n)] ^{:key i}
+       [:div.cell (get word i)])])
+
+(defn evaluated-row [cell-n words]
+  (let [cell-color {:hit "green" :miss "orange" :invalid "grey"}
+        render-cell (fn [i [letter state]]
+                      ^{:key i}
+                      [:div.cell (css :background-color (state cell-color)) 
+                       letter])]
+    [:div.row (css :color "white")
+     (map-indexed render-cell words)]))
+
+(defn table [word-size past-rounds current-word left-round]
+     [:div#table
+      (map-indexed (fn [i d] ^{:key i} [evaluated-row word-size d]) past-rounds)
+      (when current-word [input-row word-size current-word])
+      (for [i (range left-round)] ^{:key i} [input-row word-size ""])])
+
+
+(def test-game-state (-> (create-game 5 ["s" "a" "b" "i" "n"])
+    (next-state  ["s" "b" "b" "i" "n"])
+    ; (next-state  ["s" "b" "b" "i" "n"])
+    ; (next-state  ["s" "a" "b" "i" "n"])
     )
   )
 
 (defn app []
-  [:div.container
-   [:div.p-3 [:h1.text-center "Wordle Cljs"]]
-   [game]
-
-   ; [:div
-   ;  [evaluated-row 5 500 [["s" :hit] ["g" :invalid] ["b" :hit] ["n" :miss] ["n" :hit]]]
-   ;  [input-row 5 500 "sab"]
-   ;  [input-row 5 500]
-   ;  [input-row 5 500]
-   ;  ]
-
-   ; [key-board 5 js/alert #(println "changed :" %)]
-
-
-   ])
+  (let [word (r/atom "")
+        game (r/atom (create-game 5 ["s" "a" "b" "i" "n"])) 
+        create-new-game (fn [] (reset! game (create-game 5 ["s" "a" "b" "i" "n"])))]
+        test-word (fn [state wd] (reset! game (next-state state wd)))
+    (fn []
+      (let [state @game
+            {:keys [past-rounds 
+                    nround 
+                    round
+                    game-over?
+                    game-status]} state]
+        [:div
+         [:div#main
+          [:div.section [header]]
+          [:div.section [table 5 past-rounds @word (- nround round)]]
+          (if game-over?
+            [:div.section [:h1.border "You " game-status]
+                           [:button {:on-click create-new-game} "Play Again"]]
+            [:div.section [keyboard 5 #(test-word state @word) #(reset! word %)]]
+            )]]
+        ))))
 
 (defn mount-app [] 
   (when-let [el (gdom/getElement "app")] 
